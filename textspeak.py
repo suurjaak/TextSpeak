@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+ #-*- coding: utf-8 -*-
 """
 Simple text-to-speech program, uses the Google Translate text-to-speech online
 service. Since the public Google TTS only supports text up to 100 characters,
@@ -102,7 +102,8 @@ class TextSpeakWindow(wx.Frame):
 
         self.Center(wx.HORIZONTAL)
         self.Position.top = 50
-        splitter.SplitVertically(panel, panel_list, sashPosition=3 * self.Size[0] / 4)
+        sashPos = 3 * self.Size.width / 4
+        splitter.SplitVertically(panel, panel_list, sashPosition=sashPos)
         self.Show(True)
         self.edit_text.SetFocus()
 
@@ -150,7 +151,7 @@ class TextSpeakWindow(wx.Frame):
             self.button_save.Enabled = False
             # Create panel in history list
             p = wx.lib.sized_controls.SizedPanel(self.panel_list, size=(150, 100))
-            self.panel_list.SetupScrolling(scroll_x=False, rate_y=20, scrollToTop=True)
+            self.panel_list.SetupScrolling(scroll_x=False)
             self.panel_list.BackgroundColour = 'LIGHT GRAY'
             p.SetSizerType("vertical")
             p.BackgroundColour = 'WHITE'
@@ -160,12 +161,13 @@ class TextSpeakWindow(wx.Frame):
                 p_top, label=data["datetime"].strftime("%H:%M %d.%m.%Y"))
             #t_date.BackgroundColour = 'WHITE'
             t_date.ForegroundColour = 'GRAY'
-            h = wx.HyperlinkCtrl(p_top, label="Open")
+            h = wx.HyperlinkCtrl(p_top, id=wx.NewId(), label="Open", url="")
             h.text_id = data["id"]
             self.Bind(wx.EVT_HYPERLINK, self.on_open_text, h)
             t_text = wx.StaticText(p, label=text)
             t_text.ForegroundColour = 'LIGHT GRAY'
-            self.panel_list.Sizer.Insert(0, p, border=2, proportion=1, flag=wx.ALL | wx.EXPAND)
+            self.panel_list.Sizer.Insert(0, p, border=2, proportion=1,
+                                         flag=wx.ALL | wx.EXPAND)
             self.panels_history.append(p)
             self.panel_list.Layout()
             t_text.Wrap(p.Size.width)
@@ -201,7 +203,8 @@ class TextSpeakWindow(wx.Frame):
         chunk if available.
         """
         data = self.data[self.text_id]
-        index = data["filenames"].index(data["current"]) if data["current"] in data["filenames"] else -1
+        index = data["filenames"].index(data["current"]) \
+                if data["current"] in data["filenames"] else -1
         if (index < data["count"] - 1 
         and len(data["filenames"]) > index + 1):
             # Next chunk available, set it playing
