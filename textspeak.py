@@ -4,13 +4,14 @@ Simple text-to-speech program, uses the Google Translate text-to-speech online
 service. Since the public Google TTS only supports text up to 100 characters,
 the text is divided into smaller chunks and the resulting MP3 files are merged.
 
-Idea and parsing from
-http://glowingpython.blogspot.com/2012/11/text-to-speech-with-correct-intonation.html
+Idea and parsing from http://glowingpython.blogspot.com/2012/11/
+text-to-speech-with-correct-intonation.html
 
 @author      Erki Suurjaak
 @created     07.11.2012
-@modified    10.11.2012
+@modified    11.11.2012
 """
+import base64
 import datetime
 import os
 import Queue
@@ -28,6 +29,24 @@ import wx.media
 
 """Event class and event binder for new results."""
 ResultEvent, EVT_RESULT = wx.lib.newevent.NewEvent()
+
+"""The number of silent chunks inserted between text chunks."""
+SILENCE_COUNT = 3
+
+"""A chunk of silence of about 350 milliseconds, as base64-encoded MP3."""
+SILENCE = (
+"//JIwITXABmDpmJUGITYtt2jqDK1cxCwimjmHZDQGLRDRA7hGPO7HRlzuRjybL/kVyf/3T//2VyT"
+"2t//yST9GkY7oRT53I3qdCKdG+yuShJ8in79X/88mro5FcmHcDMRjnRqEV6Md3Y4IQHFoEHJ/RWU"
+"J2Nol+30rL91OGCoLEtSDE1QxIZyjUTAKRUSBnDo//JIwAsOGxKAXoZUGMZIaCtB7oEbvaOf6Nyg"
+"KRoYMQzIrK/lSNmgihPQerwk7s8ke6BWMT/ioCJFidX/IhL/////////////////////////////"
+"////////////////////////////////////////////////////////////////////////////"
+"//////JIwAysUgAAAlwAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//JIwC6+0xVAAlwAAAAAAAAAAAAAAAAA"
+"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"AAAAAAAA"
+)
 
 
 class TextSpeakWindow(wx.Frame):
@@ -60,29 +79,32 @@ class TextSpeakWindow(wx.Frame):
         panel = wx.lib.sized_controls.SizedPanel(splitter)
         panel.SetSizerType("vertical")
         gauge = self.gauge = wx.Gauge(panel)
-        gauge.ToolTipString = "Progress of receiving audio data chunks"
+        gauge.ToolTipString = "Audio data chunks"
         gauge.SetSizerProps(expand=True)
-        text = self.edit_text = wx.TextCtrl(panel, size=(-1, 50), style=wx.TE_MULTILINE | wx.TE_RICH2)
+        text = self.edit_text = wx.TextCtrl(
+            panel, size=(-1, 50), style=wx.TE_MULTILINE | wx.TE_RICH2)
         text.SetSizerProps(expand=True, proportion=1)
         panel_buttons = wx.lib.sized_controls.SizedPanel(panel)
         panel_buttons.SetSizerType("grid", {"cols":2})
         self.button_go = wx.Button(panel_buttons, label="Speak &text")
         self.button_save = wx.Button(panel_buttons, label="&Save MP3")
-        wx.AcceleratorTable([(wx.ACCEL_ALT, ord('T'), self.button_go.Id), (wx.ACCEL_ALT, ord('S'), self.button_go.Id)])
+        wx.AcceleratorTable([(wx.ACCEL_ALT, ord('T'), self.button_go.Id),
+            (wx.ACCEL_ALT, ord('S'), self.button_go.Id)])
         self.button_save.Enabled = False
         self.button_save.SetSizerProps(halign="right")
         mc = self.mediactrl = wx.media.MediaCtrl(panel, size=(-1, 70))
         mc.ShowPlayerControls(wx.media.MEDIACTRLPLAYERCONTROLS_DEFAULT)
         mc.SetSizerProps(expand=True)
 
-        panel_list = self.panel_list = wx.lib.scrolledpanel.ScrolledPanel(splitter)
+        panel_list = self.panel_list = \
+            wx.lib.scrolledpanel.ScrolledPanel(splitter)
         panel_list.BackgroundColour = "WHITE"
         panel_list.Sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.text_info = wx.StaticText(panel_main,
             label="Simple text-to-speech program, feeds the text in chunks to"
-                  " the Google Translate online service and combines received MP3s"
-                  " into one file.")
+                  " the Google Translate online service and combines received"
+                  " MP3s into one file.")
         self.text_info.SetSizerProps(expand=True)
 
         self.out_queue = Queue.Queue()
@@ -122,6 +144,9 @@ class TextSpeakWindow(wx.Frame):
             self.merge_chunks(self.data[text_id])
             self.button_save.Enabled = True
             self.data[text_id]["completed"] = True
+            if not is_first:
+                self.mediactrl.DONTPLAY = True
+                self.mediactrl.Load(self.data[text_id]["filenames"][0])
         if is_first:
             # First result: set playing at once
             self.data[text_id]["current"] = self.data[text_id]["filenames"][-1]
@@ -150,7 +175,8 @@ class TextSpeakWindow(wx.Frame):
             self.out_queue.put(data)
             self.button_save.Enabled = False
             # Create panel in history list
-            p = wx.lib.sized_controls.SizedPanel(self.panel_list, size=(150, 100))
+            p = wx.lib.sized_controls.SizedPanel(self.panel_list,
+                size=(150, 100))
             self.panel_list.SetupScrolling(scroll_x=False)
             self.panel_list.BackgroundColour = 'LIGHT GRAY'
             p.SetSizerType("vertical")
@@ -164,7 +190,7 @@ class TextSpeakWindow(wx.Frame):
             h = wx.HyperlinkCtrl(p_top, id=wx.NewId(), label="Open", url="")
             h.text_id = data["id"]
             self.Bind(wx.EVT_HYPERLINK, self.on_open_text, h)
-            t_text = wx.StaticText(p, label=text)
+            t_text = wx.StaticText(p, label=text[:500])
             t_text.ForegroundColour = 'LIGHT GRAY'
             self.panel_list.Sizer.Insert(0, p, border=2, proportion=1,
                                          flag=wx.ALL | wx.EXPAND)
@@ -187,7 +213,7 @@ class TextSpeakWindow(wx.Frame):
 
 
     def on_media_loaded(self, event):
-        """Handler for when MediaCtrl finishes loading media, sets it playing."""
+        """Handler for MediaCtrl finishing loading media, sets it to play."""
         if hasattr(self.mediactrl, "DONTPLAY"):
             delattr(self.mediactrl, "DONTPLAY")
         else:
@@ -225,8 +251,10 @@ class TextSpeakWindow(wx.Frame):
         """Merges all the audio chunks in data into one file."""
         merged = "speech_%d.mp3" % time.mktime(time.localtime())
         with open(merged, "wb") as f:
+            # MP3s can be simply concatenated together, result is legible.
             for filename in data["filenames"]:
                 f.write(open(filename, "rb").read())
+                f.write(base64.decodestring(SILENCE) * SILENCE_COUNT)
                 try:
                     os.unlink(filename)
                 except Exception, e:
@@ -285,11 +313,12 @@ class TextToMP3Loader(threading.Thread):
         """
         Returns a list of sentences with less than 100 characters.
 
-        @from http://glowingpython.blogspot.com/2012/11/text-to-speech-with-correct-intonation.html
+        @from http://glowingpython.blogspot.com/2012/11/
+        text-to-speech-with-correct-intonation.html
         """
         MAXLEN = 100
         toSay = []
-        punct = [',',':',';','.','?','!'] # punctuation
+        punct = [',',':',';','.','?','!','(',')'] # punctuation
         words = text.split(' ') if len(text) > MAXLEN else []
         sentence = '' if len(text) > MAXLEN else text
         for w in filter(None, words):
