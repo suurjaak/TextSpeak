@@ -4,7 +4,9 @@ TextSpeak
 Simple text-to-speech program, uses the Google Translate online service.
 Since the public Google TTS only supports text up to 100 characters, the text
 is divided into smaller chunks and the resulting MP3 files are merged.
-Tested under Windows.
+Tested under Windows: in XP audio chunks can be played as they are received,
+in Vista and 7 audio is set to play when all has been downloaded because
+wx.MediaCtrl fires state change events unreliably there.
 
 
 Dependencies
