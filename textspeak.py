@@ -9,7 +9,7 @@ text-to-speech-with-correct-intonation.html
 
 @author      Erki Suurjaak
 @created     07.11.2012
-@modified    12.11.2012
+@modified    15.01.2013
 """
 import base64
 import datetime
@@ -31,12 +31,14 @@ import wx.media
 """Event class and event binder for new results."""
 ResultEvent, EVT_RESULT = wx.lib.newevent.NewEvent()
 
+VERSION = "Version 15.01.2013"
+
 """
 The number of silent chunks inserted between text chunks, for shorter pauses
 (after commas and like) and longer pauses (between sentences).
 """
 SILENCE_COUNT_SHORT = 2
-SILENCE_COUNT_LONG = 3
+SILENCE_COUNT_LONG = 4
 
 """A chunk of silence of about 350 milliseconds, as base64-encoded MP3."""
 SILENCE = (
@@ -71,7 +73,7 @@ class TextSpeakWindow(wx.Frame):
 
     def __init__(self):
         wx.Frame.__init__(
-            self, parent=None, title="Simple TextSpeak", size=(700, 500)
+            self, parent=None, title="TextSpeak", size=(680, 500)
         )
 
         self.data = {}
@@ -93,7 +95,6 @@ class TextSpeakWindow(wx.Frame):
         splitter = self.splitter_main = wx.SplitterWindow(
             parent=panel_main, style=wx.BORDER_NONE
         )
-        splitter.SetMinimumPaneSize(50)
         splitter.SetSizerProps(expand=True, proportion=1)
 
         panel = wx.lib.sized_controls.SizedPanel(splitter)
@@ -105,14 +106,21 @@ class TextSpeakWindow(wx.Frame):
             panel, size=(-1, 50), style=wx.TE_MULTILINE | wx.TE_RICH2)
         text.SetSizerProps(expand=True, proportion=1)
         panel_buttons = wx.lib.sized_controls.SizedPanel(panel)
-        panel_buttons.SetSizerType("grid", {"cols":3})
+        panel_buttons.SetSizerType("grid", {"cols":4})
         self.button_go = wx.Button(panel_buttons, label="&Text to speech")
         self.button_save = wx.Button(panel_buttons, label="&Save MP3")
         self.button_save.Enabled = False
         self.list_lang = wx.ComboBox(parent=panel_buttons, value="English",
             choices=[i[1] for i in LANGUAGES], style=wx.CB_READONLY)
+        self.list_lang.ToolTipString = "Choose the speech language"
         wx.AcceleratorTable([(wx.ACCEL_ALT, ord("T"), self.button_go.Id),
             (wx.ACCEL_ALT, ord("S"), self.button_go.Id)])
+        self.cb_allatonce = wx.CheckBox(parent=panel_buttons,
+            label="Complete audio before playing")
+        self.cb_allatonce.Value = True
+        self.cb_allatonce.ToolTipString = \
+            "Download all audio chunks and merge them before playing anything"
+        self.cb_allatonce.SetSizerProps(valign="center")
 
         mc = self.mediactrl = wx.media.MediaCtrl(panel, size=(-1, 70))
         mc.ShowPlayerControls(wx.media.MEDIACTRLPLAYERCONTROLS_DEFAULT)
@@ -124,10 +132,23 @@ class TextSpeakWindow(wx.Frame):
         panel_list.Sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.text_info = wx.StaticText(panel_main,
-            label="Simple text-to-speech program, feeds the text in chunks to"
-                  " the Google Translate online service and combines received"
-                  " MP3s into one file.")
-        self.text_info.SetSizerProps(expand=True)
+            label="Simple text-to-speech program, feeds the text in chunks to "
+                  "the Google Translate online service and combines received "
+                  "MP3s into one file.")
+
+        panel_btm = wx.lib.sized_controls.SizedPanel(panel_main)
+        panel_btm.SetSizerProps(expand=True)
+        panel_btm.SetSizerType("horizontal")
+        panel_btm.Sizer.AddStretchSpacer()
+        self.text_version = wx.StaticText(panel_btm,
+            label=VERSION)
+        self.text_version.SetSizerProps(halign="right")
+        self.link_www = wx.HyperlinkCtrl(panel_btm,
+            label="github", url="http://github.com/suurjaak/TextSpeak")
+        self.link_www.ToolTipString = "Go to source code repository " \
+                                      "at http://github.com"
+        self.link_www.SetSizerProps(halign="left")
+        panel_btm.Sizer.AddStretchSpacer()
 
         self.out_queue = Queue.Queue()
         self.mp3_loader = TextToMP3Loader(self, self.out_queue)
@@ -164,8 +185,8 @@ class TextSpeakWindow(wx.Frame):
         is_first = (self.text_id == text_id) \
                    and (len(data["filenames"]) == 1)
         is_last = (index == data["count"] - 1)
-        if is_last and (wx.media.MEDIASTATE_PLAYING != self.mediactrl.State
-                        or self.mc_hack):
+        if is_last and (self.mc_hack
+        or wx.media.MEDIASTATE_PLAYING != self.mediactrl.State):
             # All chunks finished, merge them into one
             self.merge_chunks(data)
             data["completed"] = True
@@ -175,10 +196,12 @@ class TextSpeakWindow(wx.Frame):
                 self.mediactrl.Load(data["filenames"][0])
                 wx.CallLater(500, self.mediactrl.Play)
             self.button_save.Enabled = True
-        if is_first and not self.mc_hack:
+        if is_first and (is_last or not (self.mc_hack or data["allatonce"])):
             # First result: set playing at once
             data["current"] = data["filenames"][-1]
             self.mediactrl.Load(data["current"])
+        if data["allatonce"]:
+            self.gauge.SetValue(100.0 * (index + 1) / data["count"])
 
 
     def on_save_mp3(self, event):
@@ -195,13 +218,15 @@ class TextSpeakWindow(wx.Frame):
         lang = LANGUAGES[self.list_lang.Selection][0]
         text_present = [i for i in self.data.values()
                         if i["text"] == text and i["lang"] == lang]
-        if not text_present:
+        if not text:
+            pass
+        elif not text_present:
             self.text_id = wx.NewId()
             data = self.data[self.text_id] = {"filenames": [], "lang": lang,
                 "lang_text": LANGUAGES[self.list_lang.Selection][1],
                 "text": text, "current": None, "count": 0, "id": self.text_id,
                 "datetime": datetime.datetime.now(), "stopped": False,
-                "completed": False
+                "completed": False, "allatonce": self.cb_allatonce.Value
             }
             self.out_queue.put(data)
             self.button_save.Enabled = False
@@ -304,9 +329,7 @@ class TextSpeakWindow(wx.Frame):
                     os.unlink(filename)
                 except Exception, e:
                     print "Failed to unlink %s (%s)" % (filename, e)
-        data["filenames"] = [fn]
-        data["count"] = 1
-        data["current"] = fn
+        data["filenames"], data["current"] , data["count"] = [fn], fn, 1
 
 
     def cleanup(self):
@@ -335,7 +358,7 @@ class TextToMP3Loader(threading.Thread):
         self.opener = urllib2.build_opener()
         self.opener.addheaders = [("User-agent",
             "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0) "
-            "Simple TextSpeak")]
+            "TextSpeak")]
         self.start()
 
 
@@ -361,32 +384,37 @@ class TextToMP3Loader(threading.Thread):
         """
         Returns a list of sentences with less than 100 characters.
 
-        @from http://glowingpython.blogspot.com/2012/11/
+        Modified @from http://glowingpython.blogspot.com/2012/11/
         text-to-speech-with-correct-intonation.html
         """
         MAXLEN = 100
-        toSay = []
-        punct = [",",":",";",".","?","!","(",")"] # punctuation
+        sentences = []
+        punct = [",",":",";",".","–","?","!","(",")"] # Interpunctuation marks
+        text = text.replace("\r", " ").replace("\n", " ") # Remove linefeeds
         words = text.split(" ") if len(text) > MAXLEN else []
         sentence = "" if len(text) > MAXLEN else text
         for w in filter(None, words):
-            if w[len(w)-1] in punct: # encountered a punctuation mark
-                if (len(sentence)+len(w)+1 < 100): # is there enough space?
-                    sentence += " "+w # add the word
-                    toSay.append(sentence.strip()) # save the sentence
-                else:
-                    toSay.append(sentence.strip()) # save the sentence
-                    toSay.append(w.strip()) # save the word as a sentence
-                sentence = "" # start another sentence
+            if w[-1] in punct or w[0] in punct: # Encountered a punctuation mark
+                if w[-1] in punct and (len(sentence) + len(w) + 1 < MAXLEN):
+                    # Word ends with punct and sentence can still be added to
+                    sentences.append(sentence.strip() + " " + w.strip())
+                    sentence = "" # Save sentence and word, start new sentence
+                elif w[0] in punct and w[-1] not in punct:
+                     # Word starts with punctuation, like '('
+                    sentences.append(sentence.strip()) # Save current sentence
+                    sentence = w # Start a new sentence with punct and word
+                else: # word ends with punct and sentence already long enough
+                    sentences.extend([sentence.strip(), w.strip()])
+                    sentence = "" 
             else:
-                if (len(sentence)+len(w)+1 < 100):
-                    sentence += " "+w # add the word
-                else:
-                    toSay.append(sentence.strip()) # save the sentence
-                    sentence = w # start a new sentence
-        if len(sentence) > 0:
-            toSay.append(sentence.strip())
-        return toSay
+                if (len(sentence) + len(w) + 1 < MAXLEN): # Sentence still
+                    sentence += " " + w                   # short enough
+                else: # Sentence too long
+                    sentences.append(sentence.strip())
+                    sentence = w # Start a new sentence with the word
+        if sentence:
+            sentences.append(sentence.strip())
+        return sentences
 
 
     
@@ -398,4 +426,4 @@ if "__main__" == __name__:
     except Exception, e:
         traceback.print_exc()
     if window:
-        window.cleanup()
+        window.cleanup() # Remove any possible temporary files left

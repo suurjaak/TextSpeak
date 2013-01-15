@@ -1,18 +1,21 @@
 TextSpeak
 ===========
 
-Simple text-to-speech program, uses the Google Translate online service.
+Small simple text-to-speech program, uses the Google Translate online service.
 Since the public Google TTS only supports text up to 100 characters, the text
 is divided into smaller chunks and the resulting MP3 files are merged.
 Tested under Windows: in XP audio chunks can be played as they are received,
 in Vista and 7 audio is set to play when all has been downloaded because
-wx.MediaCtrl fires state change events unreliably there.
+the wx.MediaCtrl there fires state change events unreliably.
+
+A precompiled Windows executable is included in the repository.
 
 
 Dependencies
 ------------
 
-TextSpeak requires Python 2.6+ and wxPython 2.8+ (http://wxpython.org/).
+If running from source, TextSpeak requires Python 2.6+ and wxPython 2.8+
+(http://wxpython.org/).
 
 
 Attribution
