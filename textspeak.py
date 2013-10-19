@@ -9,7 +9,7 @@ text-to-speech-with-correct-intonation.html
 
 @author      Erki Suurjaak
 @created     07.11.2012
-@modified    15.01.2013
+@modified    20.10.2013
 """
 import base64
 import datetime
@@ -31,7 +31,7 @@ import wx.media
 """Event class and event binder for new results."""
 ResultEvent, EVT_RESULT = wx.lib.newevent.NewEvent()
 
-VERSION = "Version 15.01.2013"
+VERSION = "Version 20.10.2013"
 
 """
 The number of silent chunks inserted between text chunks, for shorter pauses
@@ -99,12 +99,12 @@ class TextSpeakWindow(wx.Frame):
 
         panel = wx.lib.sized_controls.SizedPanel(splitter)
         panel.SetSizerType("vertical")
-        gauge = self.gauge = wx.Gauge(panel)
-        gauge.ToolTipString = "Audio data chunks"
-        gauge.SetSizerProps(expand=True)
         text = self.edit_text = wx.TextCtrl(
             panel, size=(-1, 50), style=wx.TE_MULTILINE | wx.TE_RICH2)
         text.SetSizerProps(expand=True, proportion=1)
+        gauge = self.gauge = wx.Gauge(panel)
+        gauge.ToolTipString = "Audio data chunks"
+        gauge.SetSizerProps(expand=True)
         panel_buttons = wx.lib.sized_controls.SizedPanel(panel)
         panel_buttons.SetSizerType("grid", {"cols":4})
         self.button_go = wx.Button(panel_buttons, label="&Text to speech")
