@@ -40,6 +40,12 @@ The number of silent chunks inserted between text chunks, for shorter pauses
 SILENCE_COUNT_SHORT = 2
 SILENCE_COUNT_LONG = 4
 
+"""
+Marker in entered text to insert a silence break, chopping up the sentence
+if inside one.
+"""
+SILENCE_MARKER = "\n"
+
 """A chunk of silence of about 350 milliseconds, as base64-encoded MP3."""
 SILENCE = (
 "//JIwITXABmDpmJUGITYtt2jqDK1cxCwimjmHZDQGLRDRA7hGPO7HRlzuRjybL/kVyf/3T//2VyT"
@@ -72,9 +78,8 @@ class TextSpeakWindow(wx.Frame):
     """TextSpeak GUI window."""
 
     def __init__(self):
-        wx.Frame.__init__(
-            self, parent=None, title="TextSpeak", size=(680, 500)
-        )
+        wx.Frame.__init__(self, parent=None,
+                          title="TextSpeak", size=(680, 500))
 
         self.data = {}
         self.text = None
@@ -92,13 +97,23 @@ class TextSpeakWindow(wx.Frame):
         panel_main = wx.lib.sized_controls.SizedPanel(self)
         panel_main.SetSizerType("vertical")
 
-        splitter = self.splitter_main = wx.SplitterWindow(
-            parent=panel_main, style=wx.BORDER_NONE
-        )
+        splitter = self.splitter_main = \
+            wx.SplitterWindow(parent=panel_main, style=wx.BORDER_NONE)
         splitter.SetSizerProps(expand=True, proportion=1)
 
         panel = wx.lib.sized_controls.SizedPanel(splitter)
         panel.SetSizerType("vertical")
+
+        panel_labels = wx.lib.sized_controls.SizedPanel(panel)
+        panel_labels.SetSizerProps(expand=True)
+        panel_labels.SetSizerType("horizontal")
+
+        label_text = wx.StaticText(panel_labels, label="&Enter text to speak:")
+        panel_labels.Sizer.AddStretchSpacer()
+        label_help = wx.StaticText(
+            panel_labels, label="Multiple linefeeds create longer pauses ")
+        label_help.ForegroundColour = "GRAY"
+        label_help.SetSizerProps(halign="right")
         text = self.edit_text = wx.TextCtrl(
             panel, size=(-1, 50), style=wx.TE_MULTILINE | wx.TE_RICH2)
         text.SetSizerProps(expand=True, proportion=1)
@@ -113,8 +128,6 @@ class TextSpeakWindow(wx.Frame):
         self.list_lang = wx.ComboBox(parent=panel_buttons, value="English",
             choices=[i[1] for i in LANGUAGES], style=wx.CB_READONLY)
         self.list_lang.ToolTipString = "Choose the speech language"
-        wx.AcceleratorTable([(wx.ACCEL_ALT, ord("T"), self.button_go.Id),
-            (wx.ACCEL_ALT, ord("S"), self.button_go.Id)])
         self.cb_allatonce = wx.CheckBox(parent=panel_buttons,
             label="Complete audio before playing")
         self.cb_allatonce.Value = True
@@ -126,20 +139,27 @@ class TextSpeakWindow(wx.Frame):
         mc.ShowPlayerControls(wx.media.MEDIACTRLPLAYERCONTROLS_DEFAULT)
         mc.SetSizerProps(expand=True)
 
-        panel_list = self.panel_list = \
-            wx.lib.scrolledpanel.ScrolledPanel(splitter)
-        panel_list.BackgroundColour = "WHITE"
-        panel_list.Sizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.text_info = wx.StaticText(panel_main,
+        self.text_info = wx.StaticText(panel,
             label="Simple text-to-speech program, feeds the text in chunks to "
                   "the Google Translate online service and combines received "
-                  "MP3s into one file.")
+                  "MP3s into one file.",
+            style=wx.ALIGN_CENTER)
 
-        panel_btm = wx.lib.sized_controls.SizedPanel(panel_main)
-        panel_btm.SetSizerProps(expand=True)
+        panel_side = wx.lib.sized_controls.SizedPanel(splitter)
+        panel_side.SetSizerType("vertical")
+
+        panel_list = self.panel_list = \
+            wx.lib.scrolledpanel.ScrolledPanel(panel_side)
+        panel_list.BackgroundColour = "WHITE"
+        panel_list.SetSizerProps(expand=True, proportion=100)
+        panel_list.Sizer = wx.BoxSizer(wx.VERTICAL)
+
+        panel_side.Sizer.AddStretchSpacer()
+        panel_btm = wx.lib.sized_controls.SizedPanel(panel_side)
+        panel_btm.SetSizerProps(halign="right")
         panel_btm.SetSizerType("horizontal")
         panel_btm.Sizer.AddStretchSpacer()
+
         self.text_version = wx.StaticText(panel_btm,
             label=VERSION)
         self.text_version.SetSizerProps(halign="right")
@@ -147,8 +167,7 @@ class TextSpeakWindow(wx.Frame):
             label="github", url="http://github.com/suurjaak/TextSpeak")
         self.link_www.ToolTipString = "Go to source code repository " \
                                       "at http://github.com"
-        self.link_www.SetSizerProps(halign="left")
-        panel_btm.Sizer.AddStretchSpacer()
+        self.link_www.SetSizerProps(halign="right")
 
         self.out_queue = Queue.Queue()
         self.mp3_loader = TextToMP3Loader(self, self.out_queue)
@@ -160,17 +179,24 @@ class TextSpeakWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.on_text_to_speech, self.button_go)
         self.Bind(wx.EVT_BUTTON, self.on_save_mp3, self.button_save)
         self.Bind(wx.EVT_CLOSE, lambda evt: self.cleanup())
+        id_textfocus = wx.NewId()
+        self.Bind(wx.EVT_MENU, lambda e: self.edit_text.SetFocus(), id=id_textfocus)
+        ac = wx.AcceleratorTable([(wx.ACCEL_ALT, ord("T"), self.button_go.Id),
+            (wx.ACCEL_ALT, ord("S"), self.button_save.Id),
+            (wx.ACCEL_ALT, ord("E"), id_textfocus), ])
+        self.SetAcceleratorTable(ac)
         self.dialog_save = wx.FileDialog(
             parent=self,
             defaultDir=os.getcwd(),
-            style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE | wx.RESIZE_BORDER
-        )
+            style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE | wx.RESIZE_BORDER)
 
         self.Center(wx.HORIZONTAL)
         self.Position.top = 50
         sashPos = 3 * self.Size.width / 4
-        splitter.SplitVertically(panel, panel_list, sashPosition=sashPos)
+        splitter.SplitVertically(panel, panel_side, sashPosition=sashPos)
         self.Show(True)
+        self.text_info.Wrap(self.mediactrl.Size.width)
+        self.text_info.Parent.Layout()
         self.edit_text.SetFocus()
 
 
@@ -368,13 +394,18 @@ class TextToMP3Loader(threading.Thread):
             data = self.in_queue.get()
             text_chunks = self.parse_text(data["text"].encode("utf-8"))
             for i, sentence in enumerate(text_chunks):
-                url = self.GOOGLE_TRANSLATE_URL % (
-                    data["lang"], urllib2.quote(sentence))
-                response = self.opener.open(url)
+                if SILENCE_MARKER in sentence.lower():
+                    silence_count = sentence.lower().count(SILENCE_MARKER)
+                    content = 2 * silence_count * base64.decodestring(SILENCE)
+                else:
+                    # @todo add error handler: try X times and then.. continue trying?
+                    url = self.GOOGLE_TRANSLATE_URL % (
+                        data["lang"], urllib2.quote(sentence))
+                    content = self.opener.open(url).read()
                 filename = "speech_temp_%s_%d_%02d.mp3" % (
                     data["lang"], data["id"], i)
                 with open(filename, "wb") as f:
-                    f.write(response.read())
+                    f.write(content)
                 event = ResultEvent(TextId=data["id"], Chunks=text_chunks,
                     Count=len(text_chunks), Index=i, Filename=filename)
                 wx.PostEvent(self.event_handler, event)
@@ -390,11 +421,40 @@ class TextToMP3Loader(threading.Thread):
         MAXLEN = 100
         sentences = []
         punct = [",",":",";",".","–","?","!","(",")"] # Interpunctuation marks
-        text = text.replace("\r", " ").replace("\n", " ") # Remove linefeeds
+        text = text.replace("\r", " ").replace("\t", " ") # Remove CR and tabs
         words = text.split(" ") if len(text) > MAXLEN else []
         sentence = "" if len(text) > MAXLEN else text
-        for w in filter(None, words):
-            if w[-1] in punct or w[0] in punct: # Encountered a punctuation mark
+
+        # Preprocess list for silence markers
+        if SILENCE_MARKER in text:
+            words_new = []
+            if not words and sentence: # Was too short to be cut initially
+                words = text.split(" ")
+                sentence = ""
+            for w in filter(None, words):
+                if SILENCE_MARKER not in w.lower():
+                    words_new.append(w)
+                else:
+                    text_chunks = w.lower().split(SILENCE_MARKER)
+                    for i, part in enumerate(text_chunks):
+                        if part:
+                            words_new.append(part)
+                            if i < len(text_chunks) - 1:
+                                words_new.append(SILENCE_MARKER)
+                        else:
+                            if words_new and SILENCE_MARKER in words_new[-1]:
+                                words_new[-1] += SILENCE_MARKER
+                            else:
+                                words_new.append(SILENCE_MARKER)
+            words = words_new
+
+        for w in words:
+            if SILENCE_MARKER in w:
+                if sentence:
+                    sentences.append(sentence.strip())
+                sentences.append(w)
+                sentence = ""
+            elif w[-1] in punct or w[0] in punct: # Encountered punctuation
                 if w[-1] in punct and (len(sentence) + len(w) + 1 < MAXLEN):
                     # Word ends with punct and sentence can still be added to
                     sentences.append(sentence.strip() + " " + w.strip())
