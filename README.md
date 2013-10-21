@@ -8,7 +8,7 @@ Tested under Windows 7, Windows Vista and Windows XP.
 
 A precompiled Windows executable is included in the repository.
 
-![Screenshot](https://lh4.googleusercontent.com/-NEbLgWAro6s/UmWfwxw1DnI/AAAAAAAAB8Q/TaZusr4Rfac/w690-h550-no/screenshot.png)
+![Screenshot](https://lh6.googleusercontent.com/-vKa_nB5jHEs/UmWqbWGnqSI/AAAAAAAAB8s/c6bzOP1UjdI/s0-I/screenshot.png)
 
 Dependencies
 ------------
