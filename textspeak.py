@@ -7,6 +7,10 @@ the text is divided into smaller chunks and the resulting MP3 files are merged.
 Idea and parsing from http://glowingpython.blogspot.com/2012/11/
 text-to-speech-with-correct-intonation.html
 
+------------------------------------------------------------------------------
+This file is part of TextSpeak - a simple text-to-speech program.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     07.11.2012
 @modified    21.10.2013
@@ -26,6 +30,7 @@ import wx.lib.newevent
 import wx.lib.scrolledpanel
 import wx.lib.sized_controls
 import wx.media
+import wx.py
 
 import conf
 
@@ -66,37 +71,42 @@ class TextSpeakWindow(wx.Frame):
         panel_main.SetSizerType("vertical")
 
         panel_labels = wx.lib.sized_controls.SizedPanel(panel_main)
-        panel_labels.SetSizerProps(expand=True)
+        panel_labels.SetSizerProps(expand=True, border=(["top"], 5))
         panel_labels.SetSizerType("horizontal")
 
         label_text = wx.StaticText(panel_labels, label="&Enter text to speak:")
         panel_labels.Sizer.AddStretchSpacer()
         label_help = wx.StaticText(
-            panel_labels, label="Multiple linefeeds create longer pauses ")
+            panel_labels, label="Use commas and line-breaks to create pauses ")
         label_help.ForegroundColour = "GRAY"
         label_help.SetSizerProps(halign="right")
 
         text = self.edit_text = wx.TextCtrl(
             panel_main, size=(-1, 50), style=wx.TE_MULTILINE | wx.TE_RICH2)
-        text.SetSizerProps(expand=True, proportion=1)
+        text.SetSizerProps(expand=True, proportion=1,
+                           border=(["left", "right", "bottom"], 3))
         gauge = self.gauge = wx.Gauge(panel_main)
-        gauge.ToolTipString = "Audio data chunks"
         gauge.SetSizerProps(expand=True)
         panel_buttons = wx.lib.sized_controls.SizedPanel(panel_main)
-        panel_buttons.SetSizerType("grid", {"cols":4})
+        panel_buttons.SetSizerType("horizontal")
+        panel_buttons.SetSizerProps(expand=True)
         self.button_go = wx.Button(panel_buttons, label="&Text to speech")
         self.button_save = wx.Button(panel_buttons, label="&Save MP3")
-        self.button_save.Enabled = False
         self.list_lang = wx.ComboBox(parent=panel_buttons,
             choices=[i[1] for i in conf.Languages], style=wx.CB_READONLY)
-        self.list_lang.Selection = conf.Languages.index(("en", "English"))
-        self.list_lang.ToolTipString = "Choose the speech language"
+        panel_buttons.Sizer.AddStretchSpacer()
         self.cb_allatonce = wx.CheckBox(parent=panel_buttons,
             label="Complete audio before playing")
+        self.cb_allatonce.SetSizerProps(halign="right", valign="center")
+        self.cb_allatonce.Show(not self.mc_hack)
+
+        gauge.ToolTipString = "Audio data chunks"
+        self.button_save.Enabled = False
+        self.list_lang.Selection = conf.Languages.index(("en", "English"))
+        self.list_lang.ToolTipString = "Choose the speech language"
         self.cb_allatonce.Value = True
         self.cb_allatonce.ToolTipString = \
             "Download all audio chunks and merge them before playing anything"
-        self.cb_allatonce.SetSizerProps(valign="center")
 
         mc = self.mediactrl = wx.media.MediaCtrl(panel_main, size=(-1, 70))
         mc.ShowPlayerControls(wx.media.MEDIACTRLPLAYERCONTROLS_DEFAULT)
@@ -124,6 +134,8 @@ class TextSpeakWindow(wx.Frame):
         self.text_version = wx.StaticText(panel_btm,
             label=conf.VersionText, style=wx.ALIGN_RIGHT)
         self.text_version.ForegroundColour = "GRAY"
+        self.text_version.ToolTipString = "Ctrl-shift-doubleclick " \
+                                          "opens Python console."
         panel_btm.Sizer.Add((10, 5))
         self.text_version.SetSizerProps(halign="right")
         self.link_www = wx.HyperlinkCtrl(panel_btm, id=-1,
@@ -138,6 +150,10 @@ class TextSpeakWindow(wx.Frame):
             parent=self,
             defaultDir=os.getcwd(),
             style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE | wx.RESIZE_BORDER)
+        self.frame_console = wx.py.shell.ShellFrame(
+            parent=self, title="%s Console" % conf.Title)
+        self.frame_console.SetIcons(icons)
+        self.frame_console.Enabled = False # Flag for first toggle
 
         if not self.mc_hack:
             mc.Bind(wx.media.EVT_MEDIA_LOADED, self.on_media_loaded)
@@ -155,6 +171,8 @@ class TextSpeakWindow(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.on_exit)
         self.Bind(wx.EVT_SIZE, self.on_size)
         self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.on_size, splitter)
+        self.frame_console.Bind(wx.EVT_CLOSE, self.on_toggle_console)
+        self.text_version.Bind(wx.EVT_LEFT_DCLICK, self.on_toggle_console)
 
         conf.load()
         if conf.LastText and isinstance(conf.LastText, basestring):
@@ -201,6 +219,19 @@ class TextSpeakWindow(wx.Frame):
         conf.WindowSize = [-1, -1] if self.IsMaximized() else self.Size[:]
         conf.save()
         event.Skip()
+
+
+    def on_toggle_console(self, event):
+        """Handler for events to toggle Python console shown/invisible."""
+        if isinstance(event, wx.MouseEvent) \
+        and not (event.CmdDown() and event.ShiftDown()):
+            return # Must be Ctrl-Shift-doubleclick
+        if not self.frame_console.Enabled: # First view: set position and size
+            self.frame_console.Enabled = True
+            self.frame_console.Size = (self.Size.width, self.Size.height / 3)
+            self.frame_console.Position = (self.Position.x,
+                                           self.Position.y + self.Size.height)
+        self.frame_console.Show(not self.frame_console.Shown)
 
 
     def on_result_event(self, event):
@@ -271,6 +302,7 @@ class TextSpeakWindow(wx.Frame):
             # Create panel in history list
             p = wx.lib.sized_controls.SizedPanel(self.panel_list,
                 size=(150, 100))
+            p.text_id = data["id"]
             self.panel_list.SetupScrolling(scroll_x=False)
             self.panel_list.BackgroundColour = "LIGHT GRAY"
             p.SetSizerType("vertical")
@@ -282,17 +314,23 @@ class TextSpeakWindow(wx.Frame):
                     data["datetime"].strftime("%H:%M %d.%m.%Y"),
                     data["lang_text"])
             )
+            t_date.text_id = data["id"]
             t_date.ForegroundColour = "GRAY"
             h = wx.HyperlinkCtrl(p_top, id=wx.NewId(), label="Open", url="")
             h.text_id = data["id"]
-            self.Bind(wx.EVT_HYPERLINK, self.on_open_text, h)
             t_text = wx.StaticText(p, label=text[:200].replace("\n", " "))
+            t_text.text_id = data["id"]
             t_text.ForegroundColour = "LIGHT GRAY"
             self.panel_list.Sizer.Insert(0, p, border=2, proportion=1,
                                          flag=wx.ALL | wx.EXPAND)
             self.panels_history.append(p)
+            self.Bind(wx.EVT_HYPERLINK, self.on_open_text, h)
+            t_date.Bind(wx.EVT_LEFT_DCLICK, self.on_open_text)
+            t_text.Bind(wx.EVT_LEFT_DCLICK, self.on_open_text)
+            p.Bind(wx.EVT_LEFT_DCLICK, self.on_open_text)
+
             self.panel_list.Layout()
-            t_text.Wrap(p.Size.width)
+            t_text.Wrap(p.Size.width - 5)
             self.panel_list.Refresh()
         elif text_present[0]["id"] != self.text_id \
         and text_present[0]["filenames"]:
@@ -354,7 +392,8 @@ class TextSpeakWindow(wx.Frame):
     def merge_chunks(self, data):
         """Merges all the audio chunks in data into one file."""
         fn = "speech_%s_%d.mp3" % (data["lang"], time.mktime(time.localtime()))
-        with open(fn, "wb") as f:
+        filename_main = unique_path(fn)
+        with open(filename_main, "wb") as f:
             # MP3s can be simply concatenated together, result is legible.
             for i, filename in enumerate(data["filenames"]):
                 f.write(open(filename, "rb").read())
@@ -365,11 +404,11 @@ class TextSpeakWindow(wx.Frame):
                 elif data["chunks"][i][-1] in [",",":",";","(",")"]:
                     silence_count = conf.SilenceCountShort
                 f.write(base64.decodestring(conf.Silence) * silence_count)
+            for filename in data["filenames"]:
                 try:
                     os.unlink(filename)
-                except Exception, e:
-                    print "Failed to unlink %s (%s)" % (filename, e)
-        data["filenames"], data["current"] , data["count"] = [fn], fn, 1
+                except: pass
+        data.update(filenames=[filename_main], current=filename_main, count=1)
 
 
     def cleanup(self):
@@ -377,8 +416,7 @@ class TextSpeakWindow(wx.Frame):
         for f in [i for d in self.data.values() for i in d["filenames"]]:
             try:
                 os.unlink(f)
-            except Exception, e:
-                print "Failed to unlink %s (%s)" % (f, e)
+            except: pass
         self.Destroy()
 
 
@@ -405,11 +443,15 @@ class TextToMP3Loader(threading.Thread):
     def run(self):
         self.is_running = True
         SILENCE_RAW = base64.decodestring(conf.Silence)
+        cached_results = {} # {(language_code, sentence): content, }
         while self.is_running:
             data = self.in_queue.get()
             text_chunks = self.parse_text(data["text"].encode("utf-8"))
             for i, sentence in enumerate(text_chunks):
-                if conf.SilenceMarker in sentence.lower():
+                cachekey = (data["lang"], sentence)
+                if cachekey in cached_results:
+                    content = cached_results[cachekey]
+                elif conf.SilenceMarker in sentence.lower():
                     silence_count = sentence.lower().count(conf.SilenceMarker)
                     content = 2 * silence_count * SILENCE_RAW
                 else:
@@ -428,13 +470,15 @@ class TextToMP3Loader(threading.Thread):
                         event = ResultEvent(TextId=data["id"], Error=error)
                         wx.PostEvent(self.event_handler, event)
                         break # break for i, sentence in enumerate(text_chunks)
-                filename = "speech_temp_%s_%d_%02d.mp3" % (
-                    data["lang"], data["id"], i)
+                filename = "speech_temp_%s_%d_%02d.mp3" % \
+                           (data["lang"], data["id"], i)
+                filename = unique_path(filename)
                 with open(filename, "wb") as f:
                     f.write(content)
                 event = ResultEvent(TextId=data["id"], Chunks=text_chunks,
                     Count=len(text_chunks), Index=i, Filename=filename)
                 wx.PostEvent(self.event_handler, event)
+                cached_results[cachekey] = content
 
 
     def parse_text(self, text):
@@ -502,6 +546,20 @@ class TextToMP3Loader(threading.Thread):
             sentences.append(sentence.strip())
         return sentences
 
+
+def unique_path(pathname):
+    """
+    Returns a unique version of the path. If a file or directory with the
+    same name already exists, returns a unique version
+    (e.g. "C:\config (2).sys" if ""C:\config.sys" already exists).
+    """
+    result = pathname
+    base, ext = os.path.splitext(result)
+    counter = 2
+    while os.path.exists(result):
+        result = "%s (%s)%s" % (base, counter, ext)
+        counter += 1
+    return result
 
     
 if "__main__" == __name__:

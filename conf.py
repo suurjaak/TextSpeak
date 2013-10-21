@@ -21,7 +21,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "TextSpeak"
-Version = "1.3"
+Version = "1.4"
 VersionDate = "21.10.2013"
 VersionText = u"© Erki Suurjaak\nv%s, %s" % (Version, VersionDate)
 
@@ -62,7 +62,7 @@ WindowSize = [680, 500]
 """Short information shown at window bottom."""
 InfoText = "Simple text-to-speech program, feeds the text in chunks to " \
            "the Google Translate online service and combines received " \
-           "MP3s into one file."
+           "audio into one MP3 file."
 
 """
 The number of silent chunks inserted between text chunks, for shorter pauses
@@ -101,18 +101,13 @@ Silence = (
 
 # Languages supported by Google Translate TTS, as [(two-letter code: name), ]
 Languages = [
-    ("af", "Afrikaans"), ("sq", "Albanian"), ("ar", "Arabic"),
-    ("hy", "Armenian"), ("bs", "Bosnian"), ("ca", "Catalan"),
-    ("zh", "Chinese (Mandarin)"), ("hr", "Croatian"), ("cs", "Czech"),
-    ("da", "Danish"), ("nl", "Dutch"), ("en", "English"), ("eo", "Esperanto"),
-    ("fi", "Finnish"), ("fr", "French"), ("de", "German"), ("el", "Greek"),
-    ("hi", "Hindi"), ("hu", "Hungarian"), ("is", "Icelandic"),
-    ("id", "Indonesian"), ("it", "Italian"), ("ja", "Japanese"),
-    ("ko", "Korean"), ("la", "Latin"), ("lv", "Latvian"), ("mk", "Macedonian"),
-    ("no", "Norwegian"), ("pl", "Polish"), ("pt", "Portuguese"),
-    ("ro", "Romanian"), ("ru", "Russian"), ("sr", "Serbian"), ("sk", "Slovak"),
-    ("es", "Spanish"), ("sw", "Swahili"), ("sv", "Swedish"), ("th", "Thai"),
-    ("tr", "Turkish"), ("ta", "Tamil"), ("vi", "Vietnamese"), ("cy", "Welsh"),
+    ("ar", "Arabic"), ("zh", "Chinese (Mandarin)"), ("cs", "Czech"),
+    ("da", "Danish"), ("nl", "Dutch"), ("en", "English"),  ("fi", "Finnish"),
+    ("fr", "French"), ("de", "German"), ("el", "Greek"), ("hi", "Hindi"),
+    ("hu", "Hungarian"), ("ja", "Japanese"), ("ko", "Korean"),
+    ("la", "Latin"), ("no", "Norwegian"), ("pl", "Polish"),
+    ("pt", "Portuguese"), ("ru", "Russian"), ("sk", "Slovak"),
+    ("es", "Spanish"), ("sv", "Swedish"), ("th", "Thai"), ("tr", "Turkish"), 
 ]
 
 URLHomepage = "http://github.com/suurjaak/TextSpeak"
