@@ -9,7 +9,7 @@ text-to-speech-with-correct-intonation.html
 
 @author      Erki Suurjaak
 @created     07.11.2012
-@modified    20.10.2013
+@modified    21.10.2013
 """
 import base64
 import datetime
@@ -31,7 +31,7 @@ import wx.media
 """Event class and event binder for new results."""
 ResultEvent, EVT_RESULT = wx.lib.newevent.NewEvent()
 
-VERSION = "Version 20.10.2013"
+VERSION = u"© Erki Suurjaak\nv2.1, 21.10.2013"
 
 """
 The number of silent chunks inserted between text chunks, for shorter pauses
@@ -63,15 +63,18 @@ SILENCE = (
 
 # Languages supported by Google Translate TTS, as [(two-letter code: name), ]
 LANGUAGES = [
-    ("af", "Afrikaans"), ("sq", "Albanian"), ("ca", "Catalan"),
+    ("af", "Afrikaans"), ("sq", "Albanian"), ("ar", "Arabic"),
+    ("hy", "Armenian"), ("bs", "Bosnian"), ("ca", "Catalan"),
     ("zh", "Chinese (Mandarin)"), ("hr", "Croatian"), ("cs", "Czech"),
-    ("da", "Danish"), ("nl", "Dutch"), ("en", "English"), ("fi", "Finnish"),
-    ("el", "Greek"), ("hu", "Hungarian"), ("is", "Icelandic"),
-    ("id", "Indonesian"), ("lv", "Latvian"), ("mk", "Macedonian"),
+    ("da", "Danish"), ("nl", "Dutch"), ("en", "English"), ("eo", "Esperanto"),
+    ("fi", "Finnish"), ("fr", "French"), ("de", "German"), ("el", "Greek"),
+    ("hi", "Hindi"), ("hu", "Hungarian"), ("is", "Icelandic"),
+    ("id", "Indonesian"), ("it", "Italian"), ("ja", "Japanese"),
+    ("ko", "Korean"), ("la", "Latin"), ("lv", "Latvian"), ("mk", "Macedonian"),
     ("no", "Norwegian"), ("pl", "Polish"), ("pt", "Portuguese"),
     ("ro", "Romanian"), ("ru", "Russian"), ("sr", "Serbian"), ("sk", "Slovak"),
-    ("sw", "Swahili"), ("sv", "Swedish"), ("tr", "Turkish"),
-    ("vi", "Vietnamese"), ("cy", "Welsh")
+    ("es", "Spanish"), ("sw", "Swahili"), ("sv", "Swedish"), ("th", "Thai"),
+    ("tr", "Turkish"), ("ta", "Tamil"), ("vi", "Vietnamese"), ("cy", "Welsh"),
 ]
 
 class TextSpeakWindow(wx.Frame):
@@ -100,6 +103,7 @@ class TextSpeakWindow(wx.Frame):
         splitter = self.splitter_main = \
             wx.SplitterWindow(parent=panel_main, style=wx.BORDER_NONE)
         splitter.SetSizerProps(expand=True, proportion=1)
+        splitter.SetMinimumPaneSize(1)
 
         panel = wx.lib.sized_controls.SizedPanel(splitter)
         panel.SetSizerType("vertical")
@@ -127,6 +131,7 @@ class TextSpeakWindow(wx.Frame):
         self.button_save.Enabled = False
         self.list_lang = wx.ComboBox(parent=panel_buttons, value="English",
             choices=[i[1] for i in LANGUAGES], style=wx.CB_READONLY)
+        self.list_lang.Selection = LANGUAGES.index(("en", "English"))
         self.list_lang.ToolTipString = "Choose the speech language"
         self.cb_allatonce = wx.CheckBox(parent=panel_buttons,
             label="Complete audio before playing")
@@ -161,12 +166,14 @@ class TextSpeakWindow(wx.Frame):
         panel_btm.Sizer.AddStretchSpacer()
 
         self.text_version = wx.StaticText(panel_btm,
-            label=VERSION)
+            label=VERSION, style=wx.ALIGN_RIGHT)
+        self.text_version.ForegroundColour = "GRAY"
+        panel_btm.Sizer.Add((10, 5))
         self.text_version.SetSizerProps(halign="right")
-        self.link_www = wx.HyperlinkCtrl(panel_btm,
+        self.link_www = wx.HyperlinkCtrl(panel_btm, id=-1,
             label="github", url="http://github.com/suurjaak/TextSpeak")
         self.link_www.ToolTipString = "Go to source code repository " \
-                                      "at http://github.com"
+                                      "at http://github.com/suurjaak/TextSpeak"
         self.link_www.SetSizerProps(halign="right")
 
         self.out_queue = Queue.Queue()
@@ -420,7 +427,7 @@ class TextToMP3Loader(threading.Thread):
         """
         MAXLEN = 100
         sentences = []
-        punct = [",",":",";",".","�","?","!","(",")"] # Interpunctuation marks
+        punct = [",",":",";",".","–","?","!","(",")"] # Interpunctuation marks
         text = text.replace("\r", " ").replace("\t", " ") # Remove CR and tabs
         words = text.split(" ") if len(text) > MAXLEN else []
         sentence = "" if len(text) > MAXLEN else text
