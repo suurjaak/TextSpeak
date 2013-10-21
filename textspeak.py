@@ -27,62 +27,18 @@ import wx.lib.scrolledpanel
 import wx.lib.sized_controls
 import wx.media
 
+import conf
 
 """Event class and event binder for new results."""
 ResultEvent, EVT_RESULT = wx.lib.newevent.NewEvent()
 
-VERSION = u"© Erki Suurjaak\nv2.1, 21.10.2013"
-
-"""
-The number of silent chunks inserted between text chunks, for shorter pauses
-(after commas and like) and longer pauses (between sentences).
-"""
-SILENCE_COUNT_SHORT = 2
-SILENCE_COUNT_LONG = 4
-
-"""
-Marker in entered text to insert a silence break, chopping up the sentence
-if inside one.
-"""
-SILENCE_MARKER = "\n"
-
-"""A chunk of silence of about 350 milliseconds, as base64-encoded MP3."""
-SILENCE = (
-"//JIwITXABmDpmJUGITYtt2jqDK1cxCwimjmHZDQGLRDRA7hGPO7HRlzuRjybL/kVyf/3T//2VyT"
-"2t//yST9GkY7oRT53I3qdCKdG+yuShJ8in79X/88mro5FcmHcDMRjnRqEV6Md3Y4IQHFoEHJ/RWU"
-"J2Nol+30rL91OGCoLEtSDE1QxIZyjUTAKRUSBnDo//JIwAsOGxKAXoZUGMZIaCtB7oEbvaOf6Nyg"
-"KRoYMQzIrK/lSNmgihPQerwk7s8ke6BWMT/ioCJFidX/IhL/////////////////////////////"
-"////////////////////////////////////////////////////////////////////////////"
-"//////JIwAysUgAAAlwAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//JIwC6+0xVAAlwAAAAAAAAAAAAAAAAA"
-"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"AAAAAAAA"
-)
-
-# Languages supported by Google Translate TTS, as [(two-letter code: name), ]
-LANGUAGES = [
-    ("af", "Afrikaans"), ("sq", "Albanian"), ("ar", "Arabic"),
-    ("hy", "Armenian"), ("bs", "Bosnian"), ("ca", "Catalan"),
-    ("zh", "Chinese (Mandarin)"), ("hr", "Croatian"), ("cs", "Czech"),
-    ("da", "Danish"), ("nl", "Dutch"), ("en", "English"), ("eo", "Esperanto"),
-    ("fi", "Finnish"), ("fr", "French"), ("de", "German"), ("el", "Greek"),
-    ("hi", "Hindi"), ("hu", "Hungarian"), ("is", "Icelandic"),
-    ("id", "Indonesian"), ("it", "Italian"), ("ja", "Japanese"),
-    ("ko", "Korean"), ("la", "Latin"), ("lv", "Latvian"), ("mk", "Macedonian"),
-    ("no", "Norwegian"), ("pl", "Polish"), ("pt", "Portuguese"),
-    ("ro", "Romanian"), ("ru", "Russian"), ("sr", "Serbian"), ("sk", "Slovak"),
-    ("es", "Spanish"), ("sw", "Swahili"), ("sv", "Swedish"), ("th", "Thai"),
-    ("tr", "Turkish"), ("ta", "Tamil"), ("vi", "Vietnamese"), ("cy", "Welsh"),
-]
 
 class TextSpeakWindow(wx.Frame):
     """TextSpeak GUI window."""
 
     def __init__(self):
         wx.Frame.__init__(self, parent=None,
-                          title="TextSpeak", size=(680, 500))
+                          title=conf.Title, size=(680, 500))
 
         self.data = {}
         self.text = None
@@ -97,18 +53,19 @@ class TextSpeakWindow(wx.Frame):
                 wx.ART_TICK_MARK, wx.ART_FRAME_ICON, (s, s)))
         self.SetIcons(icons)
 
-        panel_main = wx.lib.sized_controls.SizedPanel(self)
-        panel_main.SetSizerType("vertical")
+        panel_frame = wx.lib.sized_controls.SizedPanel(self)
+        panel_frame.SetSizerType("vertical")
 
         splitter = self.splitter_main = \
-            wx.SplitterWindow(parent=panel_main, style=wx.BORDER_NONE)
+            wx.SplitterWindow(parent=panel_frame, style=wx.BORDER_NONE)
         splitter.SetSizerProps(expand=True, proportion=1)
         splitter.SetMinimumPaneSize(1)
 
-        panel = wx.lib.sized_controls.SizedPanel(splitter)
-        panel.SetSizerType("vertical")
+        # Create main panel with text box, buttons, and media control.
+        panel_main = wx.lib.sized_controls.SizedPanel(splitter)
+        panel_main.SetSizerType("vertical")
 
-        panel_labels = wx.lib.sized_controls.SizedPanel(panel)
+        panel_labels = wx.lib.sized_controls.SizedPanel(panel_main)
         panel_labels.SetSizerProps(expand=True)
         panel_labels.SetSizerType("horizontal")
 
@@ -118,20 +75,21 @@ class TextSpeakWindow(wx.Frame):
             panel_labels, label="Multiple linefeeds create longer pauses ")
         label_help.ForegroundColour = "GRAY"
         label_help.SetSizerProps(halign="right")
+
         text = self.edit_text = wx.TextCtrl(
-            panel, size=(-1, 50), style=wx.TE_MULTILINE | wx.TE_RICH2)
+            panel_main, size=(-1, 50), style=wx.TE_MULTILINE | wx.TE_RICH2)
         text.SetSizerProps(expand=True, proportion=1)
-        gauge = self.gauge = wx.Gauge(panel)
+        gauge = self.gauge = wx.Gauge(panel_main)
         gauge.ToolTipString = "Audio data chunks"
         gauge.SetSizerProps(expand=True)
-        panel_buttons = wx.lib.sized_controls.SizedPanel(panel)
+        panel_buttons = wx.lib.sized_controls.SizedPanel(panel_main)
         panel_buttons.SetSizerType("grid", {"cols":4})
         self.button_go = wx.Button(panel_buttons, label="&Text to speech")
         self.button_save = wx.Button(panel_buttons, label="&Save MP3")
         self.button_save.Enabled = False
         self.list_lang = wx.ComboBox(parent=panel_buttons, value="English",
-            choices=[i[1] for i in LANGUAGES], style=wx.CB_READONLY)
-        self.list_lang.Selection = LANGUAGES.index(("en", "English"))
+            choices=[i[1] for i in conf.Languages], style=wx.CB_READONLY)
+        self.list_lang.Selection = conf.Languages.index(("en", "English"))
         self.list_lang.ToolTipString = "Choose the speech language"
         self.cb_allatonce = wx.CheckBox(parent=panel_buttons,
             label="Complete audio before playing")
@@ -140,16 +98,14 @@ class TextSpeakWindow(wx.Frame):
             "Download all audio chunks and merge them before playing anything"
         self.cb_allatonce.SetSizerProps(valign="center")
 
-        mc = self.mediactrl = wx.media.MediaCtrl(panel, size=(-1, 70))
+        mc = self.mediactrl = wx.media.MediaCtrl(panel_main, size=(-1, 70))
         mc.ShowPlayerControls(wx.media.MEDIACTRLPLAYERCONTROLS_DEFAULT)
         mc.SetSizerProps(expand=True)
 
-        self.text_info = wx.StaticText(panel,
-            label="Simple text-to-speech program, feeds the text in chunks to "
-                  "the Google Translate online service and combines received "
-                  "MP3s into one file.",
-            style=wx.ALIGN_CENTER)
+        self.text_info = wx.StaticText(panel_main, label=conf.InfoText,
+                                       style=wx.ALIGN_CENTER)
 
+        # Create side panel with list of texts, and program information.
         panel_side = wx.lib.sized_controls.SizedPanel(splitter)
         panel_side.SetSizerType("vertical")
 
@@ -166,18 +122,22 @@ class TextSpeakWindow(wx.Frame):
         panel_btm.Sizer.AddStretchSpacer()
 
         self.text_version = wx.StaticText(panel_btm,
-            label=VERSION, style=wx.ALIGN_RIGHT)
+            label=conf.VersionText, style=wx.ALIGN_RIGHT)
         self.text_version.ForegroundColour = "GRAY"
         panel_btm.Sizer.Add((10, 5))
         self.text_version.SetSizerProps(halign="right")
         self.link_www = wx.HyperlinkCtrl(panel_btm, id=-1,
-            label="github", url="http://github.com/suurjaak/TextSpeak")
+            label="github", url=conf.URLHomepage)
         self.link_www.ToolTipString = "Go to source code repository " \
-                                      "at http://github.com/suurjaak/TextSpeak"
+                                      "at %s" % conf.URLHomepage
         self.link_www.SetSizerProps(halign="right")
 
         self.out_queue = Queue.Queue()
         self.mp3_loader = TextToMP3Loader(self, self.out_queue)
+        self.dialog_save = wx.FileDialog(
+            parent=self,
+            defaultDir=os.getcwd(),
+            style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE | wx.RESIZE_BORDER)
 
         if not self.mc_hack:
             mc.Bind(wx.media.EVT_MEDIA_LOADED, self.on_media_loaded)
@@ -186,25 +146,57 @@ class TextSpeakWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.on_text_to_speech, self.button_go)
         self.Bind(wx.EVT_BUTTON, self.on_save_mp3, self.button_save)
         self.Bind(wx.EVT_CLOSE, lambda evt: self.cleanup())
-        id_textfocus = wx.NewId()
-        self.Bind(wx.EVT_MENU, lambda e: self.edit_text.SetFocus(), id=id_textfocus)
+        idfocus = wx.NewId()
+        self.Bind(wx.EVT_MENU, lambda e: self.edit_text.SetFocus(), id=idfocus)
         ac = wx.AcceleratorTable([(wx.ACCEL_ALT, ord("T"), self.button_go.Id),
             (wx.ACCEL_ALT, ord("S"), self.button_save.Id),
-            (wx.ACCEL_ALT, ord("E"), id_textfocus), ])
+            (wx.ACCEL_ALT, ord("E"), idfocus), ])
         self.SetAcceleratorTable(ac)
-        self.dialog_save = wx.FileDialog(
-            parent=self,
-            defaultDir=os.getcwd(),
-            style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE | wx.RESIZE_BORDER)
+        self.Bind(wx.EVT_CLOSE, self.on_exit)
+        self.Bind(wx.EVT_SIZE, self.on_size)
+        self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.on_size, splitter)
 
-        self.Center(wx.HORIZONTAL)
-        self.Position.top = 50
+        conf.load()
+        if conf.LastText and isinstance(conf.LastText, basestring):
+            self.edit_text.Value = conf.LastText
+        if conf.LastLanguage:
+            index = next((i for i, x in enumerate(conf.Languages)
+                          if x[0] == conf.LastLanguage), None)
+            if index is not None:
+                self.list_lang.Selection = index
+        if conf.WindowPosition and conf.WindowSize:
+            if [-1, -1] != conf.WindowSize:
+                self.Position, self.Size = conf.WindowPosition, conf.WindowSize
+            else:
+                self.Maximize()
+        else:
+            self.Center(wx.HORIZONTAL)
+            self.Position.top = 50
+
         sashPos = 3 * self.Size.width / 4
-        splitter.SplitVertically(panel, panel_side, sashPosition=sashPos)
+        splitter.SplitVertically(panel_main, panel_side, sashPosition=sashPos)
         self.Show(True)
-        self.text_info.Wrap(self.mediactrl.Size.width)
-        self.text_info.Parent.Layout()
         self.edit_text.SetFocus()
+        self.edit_text.SetInsertionPoint(-1)
+
+
+    def on_size(self, event):
+        """Handler for window size event, tweaks control layout."""
+        event.Skip()
+        self.text_info.Label = conf.InfoText
+        wx.CallAfter(lambda: self and
+                     (self.text_info.Wrap(self.mediactrl.Size.width),
+                      self.text_info.Parent.Layout()))
+
+
+    def on_exit(self, event):
+        """Handler on application exit, saves configuration."""
+        conf.LastText = self.edit_text.Value
+        conf.LastLanguage = conf.Languages[self.list_lang.Selection][0]
+        conf.WindowPosition = self.Position[:]
+        conf.WindowSize = [-1, -1] if self.IsMaximized() else self.Size[:]
+        conf.save()
+        event.Skip()
 
 
     def on_result_event(self, event):
@@ -248,7 +240,7 @@ class TextSpeakWindow(wx.Frame):
     def on_text_to_speech(self, event):
         """Handler for the speak button, sends entered text for processing."""
         text = self.edit_text.Value.strip()
-        lang = LANGUAGES[self.list_lang.Selection][0]
+        lang = conf.Languages[self.list_lang.Selection][0]
         text_present = [i for i in self.data.values()
                         if i["text"] == text and i["lang"] == lang]
         if not text:
@@ -256,7 +248,7 @@ class TextSpeakWindow(wx.Frame):
         elif not text_present:
             self.text_id = wx.NewId()
             data = self.data[self.text_id] = {"filenames": [], "lang": lang,
-                "lang_text": LANGUAGES[self.list_lang.Selection][1],
+                "lang_text": conf.Languages[self.list_lang.Selection][1],
                 "text": text, "current": None, "count": 0, "id": self.text_id,
                 "datetime": datetime.datetime.now(), "stopped": False,
                 "completed": False, "allatonce": self.cb_allatonce.Value
@@ -354,10 +346,10 @@ class TextSpeakWindow(wx.Frame):
                 # Add silence only for separators like commas and periods.
                 silence_count = 0
                 if data["chunks"][i][-1] in [".","?","!"]:
-                    silence_count = SILENCE_COUNT_LONG
+                    silence_count = conf.SilenceCountLong
                 elif data["chunks"][i][-1] in [",",":",";","(",")"]:
-                    silence_count = SILENCE_COUNT_SHORT
-                f.write(base64.decodestring(SILENCE) * silence_count)
+                    silence_count = conf.SilenceCountShort
+                f.write(base64.decodestring(conf.Silence) * silence_count)
                 try:
                     os.unlink(filename)
                 except Exception, e:
@@ -391,19 +383,20 @@ class TextToMP3Loader(threading.Thread):
         self.opener = urllib2.build_opener()
         self.opener.addheaders = [("User-agent",
             "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0) "
-            "TextSpeak")]
+            "%s" % conf.Title)]
         self.start()
 
 
     def run(self):
         self.is_running = True
+        SILENCE_RAW = base64.decodestring(conf.Silence)
         while self.is_running:
             data = self.in_queue.get()
             text_chunks = self.parse_text(data["text"].encode("utf-8"))
             for i, sentence in enumerate(text_chunks):
-                if SILENCE_MARKER in sentence.lower():
-                    silence_count = sentence.lower().count(SILENCE_MARKER)
-                    content = 2 * silence_count * base64.decodestring(SILENCE)
+                if conf.SilenceMarker in sentence.lower():
+                    silence_count = sentence.lower().count(conf.SilenceMarker)
+                    content = 2 * silence_count * SILENCE_RAW
                 else:
                     # @todo add error handler: try X times and then.. continue trying?
                     url = self.GOOGLE_TRANSLATE_URL % (
@@ -433,30 +426,30 @@ class TextToMP3Loader(threading.Thread):
         sentence = "" if len(text) > MAXLEN else text
 
         # Preprocess list for silence markers
-        if SILENCE_MARKER in text:
+        if conf.SilenceMarker in text:
             words_new = []
             if not words and sentence: # Was too short to be cut initially
                 words = text.split(" ")
                 sentence = ""
             for w in filter(None, words):
-                if SILENCE_MARKER not in w.lower():
+                if conf.SilenceMarker not in w.lower():
                     words_new.append(w)
                 else:
-                    text_chunks = w.lower().split(SILENCE_MARKER)
+                    text_chunks = w.lower().split(conf.SilenceMarker)
                     for i, part in enumerate(text_chunks):
                         if part:
                             words_new.append(part)
                             if i < len(text_chunks) - 1:
-                                words_new.append(SILENCE_MARKER)
+                                words_new.append(conf.SilenceMarker)
                         else:
-                            if words_new and SILENCE_MARKER in words_new[-1]:
-                                words_new[-1] += SILENCE_MARKER
+                            if words_new and conf.SilenceMarker in words_new[-1]:
+                                words_new[-1] += conf.SilenceMarker
                             else:
-                                words_new.append(SILENCE_MARKER)
+                                words_new.append(conf.SilenceMarker)
             words = words_new
 
         for w in words:
-            if SILENCE_MARKER in w:
+            if conf.SilenceMarker in w:
                 if sentence:
                     sentences.append(sentence.strip())
                 sentences.append(w)
