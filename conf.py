@@ -21,7 +21,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "TextSpeak"
-Version = "2.1"
+Version = "1.3"
 VersionDate = "21.10.2013"
 VersionText = u"© Erki Suurjaak\nv%s, %s" % (Version, VersionDate)
 
@@ -37,21 +37,25 @@ else:
 ConfigFile = "%s.ini" % os.path.join(ApplicationDirectory, Title.lower())
 
 """List of attribute names that can be saved to and loaded from ConfigFile."""
-FileDirectives = ["LastLanguage", "LastText", "WindowPosition", "WindowSize", ]
+FileDirectives = ["LastLanguage", "LastText", "LastVolume",
+                  "WindowPosition", "WindowSize", ]
 
 """---------------------------- FileDirectives: ----------------------------"""
 
-"""Last selected language code."""
-LastLanguage = None
+"""Language code of last selected language."""
+LastLanguage = "en"
 
-"""Last text entered in window."""
+"""Text entered last in window."""
 LastText = ""
+
+"""Sound volume of the media control (0..1)."""
+LastVolume = 1
 
 """Main window position, (x, y)."""
 WindowPosition = None
 
 """Main window size in pixels, [w, h] or [-1, -1] for maximized."""
-WindowSize = [1080, 710]
+WindowSize = [680, 500]
 
 """---------------------------- /FileDirectives ----------------------------"""
 
@@ -73,19 +77,26 @@ if inside one.
 """
 SilenceMarker = "\n"
 
-"""Silence for ~350 milliseconds, as base64-encoded MP3 (32Kbps 16KHz mono)."""
+"""Silence for ~250 milliseconds, as base64-encoded MP3 (32Kbps 16KHz mono)."""
 Silence = (
-"//JIwITXABmDpmJUGITYtt2jqDK1cxCwimjmHZDQGLRDRA7hGPO7HRlzuRjybL/kVyf/3T//2VyT"
-"2t//yST9GkY7oRT53I3qdCKdG+yuShJ8in79X/88mro5FcmHcDMRjnRqEV6Md3Y4IQHFoEHJ/RWU"
-"J2Nol+30rL91OGCoLEtSDE1QxIZyjUTAKRUSBnDo//JIwAsOGxKAXoZUGMZIaCtB7oEbvaOf6Nyg"
-"KRoYMQzIrK/lSNmgihPQerwk7s8ke6BWMT/ioCJFidX/IhL/////////////////////////////"
-"////////////////////////////////////////////////////////////////////////////"
-"//////JIwAysUgAAAlwAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//JIwC6+0xVAAlwAAAAAAAAAAAAAAAAA"
-"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-"AAAAAAAA"
+"//NIxAAUBFYQFgBNzQDkSH8A3RjZAeDAAAxkD4xsCZI0b//+//m/5IkY2WQF8e9f9idpmAgQhDkM"
+"iHYghBMmDhdsZjkIiP7PJkEHtyZPYbPHsmn/fMQj9k/7Jk7kDD29frU1puaWahro0zO7mk76OV7f"
+"//+/TrsmRdHopTgnEKY/zhCVrYUlSjSkYxc31sYJ//NIxDMYxF4YCgCTscTrvcoYkfGHEd+MSNAQ"
+"hcRzMlVVIkp9EToiWk2S6ouwm9QTnBIKGR4iOmzzDzi05gyB2/d7EpREpcxUuuo87iCEU4yWcsg0"
+"ijOfFkdyV0//39H29GVERDMdzzOAKaraGBpt3nUYxglkkWIdXQH2oQ3SpYiQ+KhtETwGlJU2DxCg"
+"YJgM//NIxFMa7F4YDACTsbOtrF1VrmIhMYFe0YLhUuZCx0kIC5EQsyoAOSNFVI5mFF3VM3Dhj+y6"
+"FCQ5UMKOxqDUOJHuStBVKG5kthR+VSDXzb2+FbvkRzNUPIYCi01G1u6ly/UDOFlOYMOK0xBkHQGb"
+"KrBkNzkjjQHTIrj9aiZf6CoACUST6lL/Q3+ImMYz//////NIxGoWU5pEHgBHo////KyP/oWaUuXU"
+"rdeY2agkLKAodFStRyy82NfDCqtUMKoCArOBgJmYMBVMQU1FMy45OC4yVVVVVVVVVVVVVVVVVVVV"
+"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+"VVVVVVVV//NIxJMOrBZMHgFH0lVVVVVVVVVMQU1FMy45OC4yVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NIxNsAAANIAAAAAFVVVVVVVVVM"
+"QU1FMy45OC4yVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+"VVVVVVVVVVVV//NIxP8AAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
 )
 
 # Languages supported by Google Translate TTS, as [(two-letter code: name), ]

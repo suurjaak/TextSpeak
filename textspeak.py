@@ -38,7 +38,7 @@ class TextSpeakWindow(wx.Frame):
 
     def __init__(self):
         wx.Frame.__init__(self, parent=None,
-                          title=conf.Title, size=(680, 500))
+                          title=conf.Title, size=conf.WindowSize)
 
         self.data = {}
         self.text = None
@@ -87,7 +87,7 @@ class TextSpeakWindow(wx.Frame):
         self.button_go = wx.Button(panel_buttons, label="&Text to speech")
         self.button_save = wx.Button(panel_buttons, label="&Save MP3")
         self.button_save.Enabled = False
-        self.list_lang = wx.ComboBox(parent=panel_buttons, value="English",
+        self.list_lang = wx.ComboBox(parent=panel_buttons,
             choices=[i[1] for i in conf.Languages], style=wx.CB_READONLY)
         self.list_lang.Selection = conf.Languages.index(("en", "English"))
         self.list_lang.ToolTipString = "Choose the speech language"
@@ -164,6 +164,8 @@ class TextSpeakWindow(wx.Frame):
                           if x[0] == conf.LastLanguage), None)
             if index is not None:
                 self.list_lang.Selection = index
+        if not 0 <= conf.LastVolume <= 1:
+            conf.LastVolume = 1
         if conf.WindowPosition and conf.WindowSize:
             if [-1, -1] != conf.WindowSize:
                 self.Position, self.Size = conf.WindowPosition, conf.WindowSize
@@ -193,6 +195,8 @@ class TextSpeakWindow(wx.Frame):
         """Handler on application exit, saves configuration."""
         conf.LastText = self.edit_text.Value
         conf.LastLanguage = conf.Languages[self.list_lang.Selection][0]
+        if not self.mediactrl.Tell() < 0: # Nothing loaded and 0 volume if -1
+            conf.LastVolume = self.mediactrl.GetVolume()
         conf.WindowPosition = self.Position[:]
         conf.WindowSize = [-1, -1] if self.IsMaximized() else self.Size[:]
         conf.save()
@@ -201,15 +205,20 @@ class TextSpeakWindow(wx.Frame):
 
     def on_result_event(self, event):
         """Handler for a result chunk from TextToMP3Loader."""
-        text_id, filename = event.TextId, event.Filename
-        chunks, count, index = event.Chunks, event.Count, event.Index
+        text_id = event.TextId
         data = self.data[text_id]
+        if hasattr(event, "Error"):
+            wx.MessageBox(event.Error, conf.Title, wx.ICON_WARNING | wx.OK)
+            return
+        index, count = event.Index, event.Count
+        chunks, filename = event.Chunks, event.Filename
         data["count"] = count
         data["chunks"] = chunks
         data["filenames"].append(filename)
         is_first = (self.text_id == text_id) \
                    and (len(data["filenames"]) == 1)
         is_last = (index == data["count"] - 1)
+        is_volumeset = not self.mediactrl.Tell() < 0
         if is_last and (self.mc_hack
         or wx.media.MEDIASTATE_PLAYING != self.mediactrl.State):
             # All chunks finished, merge them into one
@@ -219,12 +228,16 @@ class TextSpeakWindow(wx.Frame):
             if not is_first or self.mc_hack:
                 self.mediactrl.DONTPLAY = True
                 self.mediactrl.Load(data["filenames"][0])
+                if not is_volumeset:
+                    self.mediactrl.SetVolume(conf.LastVolume)
                 wx.CallLater(500, self.mediactrl.Play)
             self.button_save.Enabled = True
         if is_first and (is_last or not (self.mc_hack or data["allatonce"])):
             # First result: set playing at once
             data["current"] = data["filenames"][-1]
             self.mediactrl.Load(data["current"])
+            if not is_volumeset:
+                self.mediactrl.SetVolume(conf.LastVolume)
         if data["allatonce"]:
             self.gauge.SetValue(100.0 * (index + 1) / data["count"])
 
@@ -281,7 +294,8 @@ class TextSpeakWindow(wx.Frame):
             self.panel_list.Layout()
             t_text.Wrap(p.Size.width)
             self.panel_list.Refresh()
-        elif text_present[0]["id"] != self.text_id:
+        elif text_present[0]["id"] != self.text_id \
+        and text_present[0]["filenames"]:
             self.mediactrl.Load(text_present[0]["filenames"][0])
             if self.mc_hack:
                 wx.CallLater(500, self.mediactrl.Play)
@@ -295,7 +309,8 @@ class TextSpeakWindow(wx.Frame):
         data = self.data[self.text_id]
         self.edit_text.Value = data["text"]
         self.list_lang.Value = data["lang_text"]
-        self.mediactrl.Load(data["filenames"][0])
+        if data["filenames"]:
+            self.mediactrl.Load(data["filenames"][0])
         if self.mc_hack:
             wx.CallLater(500, self.mediactrl.Play)
 
@@ -343,7 +358,7 @@ class TextSpeakWindow(wx.Frame):
             # MP3s can be simply concatenated together, result is legible.
             for i, filename in enumerate(data["filenames"]):
                 f.write(open(filename, "rb").read())
-                # Add silence only for separators like commas and periods.
+                # Add more silence for separators like commas and periods.
                 silence_count = 0
                 if data["chunks"][i][-1] in [".","?","!"]:
                     silence_count = conf.SilenceCountLong
@@ -398,10 +413,21 @@ class TextToMP3Loader(threading.Thread):
                     silence_count = sentence.lower().count(conf.SilenceMarker)
                     content = 2 * silence_count * SILENCE_RAW
                 else:
-                    # @todo add error handler: try X times and then.. continue trying?
+                    content, tries, MAX_TRIES = None, 0, 3
                     url = self.GOOGLE_TRANSLATE_URL % (
-                        data["lang"], urllib2.quote(sentence))
-                    content = self.opener.open(url).read()
+                          data["lang"], urllib2.quote(sentence))
+                    while tries < MAX_TRIES:
+                        try:
+                            tries += 1
+                            content = self.opener.open(url).read()
+                        except: pass
+                    if content is None and tries >= MAX_TRIES:
+                        error = "Error accessing the Google Translate " \
+                                "online service.\n\nURL: %s\n\n%s" % (
+                                url.replace("?", "?\n"), traceback.format_exc())
+                        event = ResultEvent(TextId=data["id"], Error=error)
+                        wx.PostEvent(self.event_handler, event)
+                        break # break for i, sentence in enumerate(text_chunks)
                 filename = "speech_temp_%s_%d_%02d.mp3" % (
                     data["lang"], data["id"], i)
                 with open(filename, "wb") as f:
