@@ -6,8 +6,6 @@ Since the public Google TTS only supports text up to 100 characters, the text
 is divided into smaller blocks and the resulting MP3 files are merged.
 Tested under Windows 7, Windows Vista and Windows XP.
 
-A precompiled Windows executable is included in the repository.
-
 ![Screenshot](https://lh4.googleusercontent.com/-NEbLgWAro6s/UmWfwxw1DnI/AAAAAAAAB8Q/TaZusr4Rfac/w690-h550-no/screenshot.png)
 
 Dependencies
