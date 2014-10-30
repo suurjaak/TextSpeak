@@ -10,7 +10,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     21.10.2013
-@modified    21.10.2013
+@modified    30.10.2014
 ------------------------------------------------------------------------------
 """
 from ConfigParser import RawConfigParser
@@ -21,8 +21,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "TextSpeak"
-Version = "1.4"
-VersionDate = "21.10.2013"
+Version = "1.4.1"
+VersionDate = "30.10.2014"
 VersionText = u"© Erki Suurjaak\nv%s, %s" % (Version, VersionDate)
 
 if getattr(sys, 'frozen', False):
@@ -49,7 +49,7 @@ LastLanguage = "en"
 LastText = ""
 
 """Sound volume of the media control (0..1)."""
-LastVolume = 1
+LastVolume = 0.5
 
 """Main window position, (x, y)."""
 WindowPosition = None
@@ -60,9 +60,9 @@ WindowSize = [680, 500]
 """---------------------------- /FileDirectives ----------------------------"""
 
 """Short information shown at window bottom."""
-InfoText = "Simple text-to-speech program, feeds the text in chunks to " \
+InfoText = "Simple text-to-speech program, feeds text in blocks to " \
            "the Google Translate online service and combines received " \
-           "audio into one MP3 file."
+           "audio into one MP3."
 
 """
 The number of silent chunks inserted between text chunks, for shorter pauses
@@ -99,7 +99,7 @@ Silence = (
 "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
 )
 
-# Languages supported by Google Translate TTS, as [(two-letter code: name), ]
+# Languages with human voice in Google Translate TTS, as [(two-letter code: name), ]
 Languages = [
     ("ar", "Arabic"), ("zh", "Chinese (Mandarin)"), ("cs", "Czech"),
     ("da", "Danish"), ("nl", "Dutch"), ("en", "English"),  ("fi", "Finnish"),

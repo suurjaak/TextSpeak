@@ -13,7 +13,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     07.11.2012
-@modified    21.10.2013
+@modified    30.10.2014
 """
 import base64
 import datetime
@@ -77,7 +77,7 @@ class TextSpeakWindow(wx.Frame):
         label_text = wx.StaticText(panel_labels, label="&Enter text to speak:")
         panel_labels.Sizer.AddStretchSpacer()
         label_help = wx.StaticText(
-            panel_labels, label="Use commas and line-breaks to create pauses ")
+            panel_labels, label="Use commas and line breaks to create pauses ")
         label_help.ForegroundColour = "GRAY"
         label_help.SetSizerProps(halign="right")
 
@@ -91,7 +91,6 @@ class TextSpeakWindow(wx.Frame):
         panel_buttons.SetSizerType("horizontal")
         panel_buttons.SetSizerProps(expand=True)
         self.button_go = wx.Button(panel_buttons, label="&Text to speech")
-        self.button_save = wx.Button(panel_buttons, label="&Save MP3")
         self.list_lang = wx.ComboBox(parent=panel_buttons,
             choices=[i[1] for i in conf.Languages], style=wx.CB_READONLY)
         panel_buttons.Sizer.AddStretchSpacer()
@@ -99,6 +98,7 @@ class TextSpeakWindow(wx.Frame):
             label="Complete audio before playing")
         self.cb_allatonce.SetSizerProps(halign="right", valign="center")
         self.cb_allatonce.Show(not self.mc_hack)
+        self.button_save = wx.Button(panel_buttons, label="&Save MP3")
 
         gauge.ToolTipString = "Audio data chunks"
         self.button_save.Enabled = False
@@ -183,7 +183,7 @@ class TextSpeakWindow(wx.Frame):
             if index is not None:
                 self.list_lang.Selection = index
         if not 0 <= conf.LastVolume <= 1:
-            conf.LastVolume = 1
+            conf.LastVolume = 0.5
         if conf.WindowPosition and conf.WindowSize:
             if [-1, -1] != conf.WindowSize:
                 self.Position, self.Size = conf.WindowPosition, conf.WindowSize
@@ -214,7 +214,7 @@ class TextSpeakWindow(wx.Frame):
         conf.LastText = self.edit_text.Value
         conf.LastLanguage = conf.Languages[self.list_lang.Selection][0]
         if not self.mediactrl.Tell() < 0: # Nothing loaded and 0 volume if -1
-            conf.LastVolume = self.mediactrl.GetVolume()
+            conf.LastVolume = round(self.mediactrl.GetVolume(), 2)
         conf.WindowPosition = self.Position[:]
         conf.WindowSize = [-1, -1] if self.IsMaximized() else self.Size[:]
         conf.save()
@@ -278,7 +278,10 @@ class TextSpeakWindow(wx.Frame):
         data = self.data[self.text_id]
         self.dialog_save.Filename = data["filenames"][0]
         if wx.ID_OK == self.dialog_save.ShowModal():
-            shutil.copyfile(data["filenames"][0], self.dialog_save.GetPath())
+            try:
+                shutil.copyfile(data["filenames"][0], self.dialog_save.GetPath())
+            except Exception as e:
+                wx.MessageBox(str(e), conf.Title, wx.ICON_WARNING | wx.OK)
 
 
     def on_text_to_speech(self, event):

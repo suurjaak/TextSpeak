@@ -3,12 +3,10 @@ TextSpeak
 
 Small simple text-to-speech program, uses the Google Translate online service.
 Since the public Google TTS only supports text up to 100 characters, the text
-is divided into smaller chunks and the resulting MP3 files are merged.
+is divided into smaller blocks and the resulting MP3 files are merged.
 Tested under Windows 7, Windows Vista and Windows XP.
 
-A precompiled Windows executable is included in the repository.
-
-![Screenshot](https://lh6.googleusercontent.com/-vKa_nB5jHEs/UmWqbWGnqSI/AAAAAAAAB8s/c6bzOP1UjdI/s0-I/screenshot.png)
+![Screenshot](https://lh4.googleusercontent.com/-NEbLgWAro6s/UmWfwxw1DnI/AAAAAAAAB8Q/TaZusr4Rfac/w690-h550-no/screenshot.png)
 
 Dependencies
 ------------
@@ -41,10 +39,10 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+The software is provided "as is", without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability,
+fitness for a particular purpose and noninfringement. In no event shall the
+authors or copyright holders be liable for any claim, damages or other
+liability, whether in an action of contract, tort or otherwise, arising from,
+out of or in connection with the software or the use or other dealings in
+the software.
