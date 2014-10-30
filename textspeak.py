@@ -183,7 +183,7 @@ class TextSpeakWindow(wx.Frame):
             if index is not None:
                 self.list_lang.Selection = index
         if not 0 <= conf.LastVolume <= 1:
-            conf.LastVolume = 1
+            conf.LastVolume = 0.5
         if conf.WindowPosition and conf.WindowSize:
             if [-1, -1] != conf.WindowSize:
                 self.Position, self.Size = conf.WindowPosition, conf.WindowSize
@@ -214,7 +214,7 @@ class TextSpeakWindow(wx.Frame):
         conf.LastText = self.edit_text.Value
         conf.LastLanguage = conf.Languages[self.list_lang.Selection][0]
         if not self.mediactrl.Tell() < 0: # Nothing loaded and 0 volume if -1
-            conf.LastVolume = self.mediactrl.GetVolume()
+            conf.LastVolume = round(self.mediactrl.GetVolume(), 2)
         conf.WindowPosition = self.Position[:]
         conf.WindowSize = [-1, -1] if self.IsMaximized() else self.Size[:]
         conf.save()
