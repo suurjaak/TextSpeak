@@ -49,7 +49,7 @@ LastLanguage = "en"
 LastText = ""
 
 """Sound volume of the media control (0..1)."""
-LastVolume = 1
+LastVolume = 0.5
 
 """Main window position, (x, y)."""
 WindowPosition = None
