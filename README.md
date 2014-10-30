@@ -27,7 +27,7 @@ License
 
 (The MIT License)
 
-Copyright (C) 2012-2013 by Erki Suurjaak
+Copyright (C) 2012-2014 by Erki Suurjaak
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
