@@ -278,7 +278,10 @@ class TextSpeakWindow(wx.Frame):
         data = self.data[self.text_id]
         self.dialog_save.Filename = data["filenames"][0]
         if wx.ID_OK == self.dialog_save.ShowModal():
-            shutil.copyfile(data["filenames"][0], self.dialog_save.GetPath())
+            try:
+                shutil.copyfile(data["filenames"][0], self.dialog_save.GetPath())
+            except Exception as e:
+                wx.MessageBox(str(e), conf.Title, wx.ICON_WARNING | wx.OK)
 
 
     def on_text_to_speech(self, event):
