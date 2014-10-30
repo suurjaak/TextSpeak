@@ -10,7 +10,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     21.10.2013
-@modified    21.10.2013
+@modified    30.10.2014
 ------------------------------------------------------------------------------
 """
 from ConfigParser import RawConfigParser
@@ -21,8 +21,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "TextSpeak"
-Version = "1.4"
-VersionDate = "21.10.2013"
+Version = "1.4.1"
+VersionDate = "30.10.2014"
 VersionText = u"© Erki Suurjaak\nv%s, %s" % (Version, VersionDate)
 
 if getattr(sys, 'frozen', False):
@@ -60,9 +60,9 @@ WindowSize = [680, 500]
 """---------------------------- /FileDirectives ----------------------------"""
 
 """Short information shown at window bottom."""
-InfoText = "Simple text-to-speech program, feeds the text in chunks to " \
+InfoText = "Simple text-to-speech program, feeds text in blocks to " \
            "the Google Translate online service and combines received " \
-           "audio into one MP3 file."
+           "audio into one MP3."
 
 """
 The number of silent chunks inserted between text chunks, for shorter pauses

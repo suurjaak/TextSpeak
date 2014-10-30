@@ -13,7 +13,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     07.11.2012
-@modified    21.10.2013
+@modified    30.10.2014
 """
 import base64
 import datetime
@@ -77,7 +77,7 @@ class TextSpeakWindow(wx.Frame):
         label_text = wx.StaticText(panel_labels, label="&Enter text to speak:")
         panel_labels.Sizer.AddStretchSpacer()
         label_help = wx.StaticText(
-            panel_labels, label="Use commas and line-breaks to create pauses ")
+            panel_labels, label="Use commas and line breaks to create pauses ")
         label_help.ForegroundColour = "GRAY"
         label_help.SetSizerProps(halign="right")
 
@@ -91,7 +91,6 @@ class TextSpeakWindow(wx.Frame):
         panel_buttons.SetSizerType("horizontal")
         panel_buttons.SetSizerProps(expand=True)
         self.button_go = wx.Button(panel_buttons, label="&Text to speech")
-        self.button_save = wx.Button(panel_buttons, label="&Save MP3")
         self.list_lang = wx.ComboBox(parent=panel_buttons,
             choices=[i[1] for i in conf.Languages], style=wx.CB_READONLY)
         panel_buttons.Sizer.AddStretchSpacer()
@@ -99,6 +98,7 @@ class TextSpeakWindow(wx.Frame):
             label="Complete audio before playing")
         self.cb_allatonce.SetSizerProps(halign="right", valign="center")
         self.cb_allatonce.Show(not self.mc_hack)
+        self.button_save = wx.Button(panel_buttons, label="&Save MP3")
 
         gauge.ToolTipString = "Audio data chunks"
         self.button_save.Enabled = False
