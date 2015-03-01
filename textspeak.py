@@ -13,7 +13,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     07.11.2012
-@modified    02.11.2014
+@modified    02.03.2015
 """
 import base64
 import datetime
@@ -22,7 +22,6 @@ import Queue
 import shutil
 import sys
 import threading
-import time
 import traceback
 import urllib2
 import wx
@@ -47,6 +46,7 @@ class TextSpeakWindow(wx.Frame):
 
         self.data = {}
         self.text = None
+        self.text_id = None # ID of currently selected text
         self.panels_history = []
         # In Windows 7 and Vista the wx.media.MediaCtrl fires state change
         # events unreliably, so cannot use sequential play.
@@ -398,7 +398,8 @@ class TextSpeakWindow(wx.Frame):
 
     def merge_chunks(self, data):
         """Merges all the audio chunks in data into one file."""
-        fn = "speech_%s_%d.mp3" % (data["lang"], time.mktime(time.localtime()))
+        fn = "speech_%s_%s.mp3" % (
+             data["lang"], data["datetime"].strftime("%Y%m%d-%H%M%S"))
         filename_main = unique_path(fn)
         with open(filename_main, "wb") as f:
             # MP3s can be simply concatenated together, result is legible.
