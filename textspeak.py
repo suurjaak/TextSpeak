@@ -13,7 +13,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     07.11.2012
-@modified    30.10.2014
+@modified    02.03.2015
 """
 import base64
 import datetime
@@ -22,7 +22,6 @@ import Queue
 import shutil
 import sys
 import threading
-import time
 import traceback
 import urllib2
 import wx
@@ -47,6 +46,7 @@ class TextSpeakWindow(wx.Frame):
 
         self.data = {}
         self.text = None
+        self.text_id = None # ID of currently selected text
         self.panels_history = []
         # In Windows 7 and Vista the wx.media.MediaCtrl fires state change
         # events unreliably, so cannot use sequential play.
@@ -91,8 +91,12 @@ class TextSpeakWindow(wx.Frame):
         panel_buttons.SetSizerType("horizontal")
         panel_buttons.SetSizerProps(expand=True)
         self.button_go = wx.Button(panel_buttons, label="&Text to speech")
+        panel_buttons.Sizer.AddSpacer(10)
+        label_lang = wx.StaticText(panel_buttons, label="&Language:")
+        label_lang.SetSizerProps(border=(["all"], 0), valign="center")
         self.list_lang = wx.ComboBox(parent=panel_buttons,
             choices=[i[1] for i in conf.Languages], style=wx.CB_READONLY)
+        self.list_lang.SetSizerProps(border=(["all"], 0), valign="center")
         panel_buttons.Sizer.AddStretchSpacer()
         self.cb_allatonce = wx.CheckBox(parent=panel_buttons,
             label="Complete audio before playing")
@@ -394,7 +398,8 @@ class TextSpeakWindow(wx.Frame):
 
     def merge_chunks(self, data):
         """Merges all the audio chunks in data into one file."""
-        fn = "speech_%s_%d.mp3" % (data["lang"], time.mktime(time.localtime()))
+        fn = "speech_%s_%s.mp3" % (
+             data["lang"], data["datetime"].strftime("%Y%m%d-%H%M%S"))
         filename_main = unique_path(fn)
         with open(filename_main, "wb") as f:
             # MP3s can be simply concatenated together, result is legible.
@@ -410,7 +415,7 @@ class TextSpeakWindow(wx.Frame):
             for filename in data["filenames"]:
                 try:
                     os.unlink(filename)
-                except: pass
+                except Exception: pass
         data.update(filenames=[filename_main], current=filename_main, count=1)
 
 
@@ -419,7 +424,7 @@ class TextSpeakWindow(wx.Frame):
         for f in [i for d in self.data.values() for i in d["filenames"]]:
             try:
                 os.unlink(f)
-            except: pass
+            except Exception: pass
         self.Destroy()
 
 
@@ -465,7 +470,7 @@ class TextToMP3Loader(threading.Thread):
                         try:
                             tries += 1
                             content = self.opener.open(url).read()
-                        except: pass
+                        except Exception: pass
                     if content is None and tries >= MAX_TRIES:
                         error = "Error accessing the Google Translate " \
                                 "online service.\n\nURL: %s\n\n%s" % (

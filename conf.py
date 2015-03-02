@@ -10,7 +10,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     21.10.2013
-@modified    30.10.2014
+@modified    02.03.2015
 ------------------------------------------------------------------------------
 """
 from ConfigParser import RawConfigParser
@@ -21,8 +21,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "TextSpeak"
-Version = "1.4.1"
-VersionDate = "30.10.2014"
+Version = "1.4.2b"
+VersionDate = "02.03.2015"
 VersionText = u"© Erki Suurjaak\nv%s, %s" % (Version, VersionDate)
 
 if getattr(sys, 'frozen', False):
@@ -111,6 +111,7 @@ Languages = [
 ]
 
 URLHomepage = "http://github.com/suurjaak/TextSpeak"
+
 
 def load():
     """Loads FileDirectives from ConfigFile into this module's attributes."""
