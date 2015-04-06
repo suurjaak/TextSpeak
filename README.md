@@ -6,7 +6,7 @@ Since the public Google TTS only supports text up to 100 characters, the text
 is divided into smaller blocks and the resulting MP3 files are merged.
 Tested under Windows 7, Windows Vista and Windows XP.
 
-![Screenshot](https://lh3.googleusercontent.com/-pAUEOKI7yso/VFKjFjA-v-I/AAAAAAAACBc/eTwP5qx_bKs/s680/screenshot.png)
+![Screenshot](https://lh5.googleusercontent.com/-_qc33NldNsc/VSLsuTo9hnI/AAAAAAAACCM/WK364BGJmPA/w680/screenshot.png)
 
 Dependencies
 ------------
