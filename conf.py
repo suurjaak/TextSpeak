@@ -10,7 +10,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     21.10.2013
-@modified    02.03.2015
+@modified    06.04.2015
 ------------------------------------------------------------------------------
 """
 from ConfigParser import RawConfigParser
@@ -21,8 +21,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "TextSpeak"
-Version = "1.4.2b"
-VersionDate = "02.03.2015"
+Version = "1.4.2c"
+VersionDate = "06.04.2015"
 VersionText = u"© Erki Suurjaak\nv%s, %s" % (Version, VersionDate)
 
 if getattr(sys, 'frozen', False):
@@ -101,11 +101,13 @@ Silence = (
 
 # Languages supported by Google Translate TTS, as [(two-letter code: name), ]
 Languages = [
-    ("ar", "Arabic"), ("zh", "Chinese (Mandarin)"), ("cs", "Czech"),
-    ("da", "Danish"), ("nl", "Dutch"), ("en", "English"),  ("fi", "Finnish"),
-    ("fr", "French"), ("de", "German"), ("el", "Greek"), ("hi", "Hindi"),
-    ("hu", "Hungarian"), ("ja", "Japanese"), ("ko", "Korean"),
-    ("la", "Latin"), ("no", "Norwegian"), ("pl", "Polish"),
+    ("ar", "Arabic"), ("zh-CN", "Chinese (Simplified)"),
+    ("zh", "Chinese (Mandarin)"), ("cs", "Czech"), ("da", "Danish"),
+    ("nl", "Dutch"), ("en", "English"),  ("fi", "Finnish"),
+    ("fr", "French"), ("de", "German"), ("el", "Greek"),
+    ("ht", "Haitian Creole"), ("hi", "Hindi"), ("hu", "Hungarian"),
+    ("it", "Italian"), ("id", "Indonesian"), ("ja", "Japanese"),
+    ("ko", "Korean"), ("la", "Latin"), ("no", "Norwegian"), ("pl", "Polish"),
     ("pt", "Portuguese"), ("ru", "Russian"), ("sk", "Slovak"),
     ("es", "Spanish"), ("sv", "Swedish"), ("th", "Thai"), ("tr", "Turkish"), 
 ]
