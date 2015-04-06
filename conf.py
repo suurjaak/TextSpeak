@@ -21,7 +21,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "TextSpeak"
-Version = "1.4.2c"
+Version = "1.4.3"
 VersionDate = "06.04.2015"
 VersionText = u"© Erki Suurjaak\nv%s, %s" % (Version, VersionDate)
 
